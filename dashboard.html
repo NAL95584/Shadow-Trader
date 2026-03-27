@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Shadow Trader{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+
+    <!-- ─── BARRE DE STATS ─────────────────────────────────────── -->
+    <div class="stats-bar">
+        <div class="stat-card">
+            <span class="stat-label">CASH DISPONIBLE</span>
+            <span class="stat-value cash-value" id="cash-display">{{ "%.2f"|format(user.cash) }}$</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">VALEUR ACTIONS</span>
+            <span class="stat-value">{{ "%.2f"|format(portfolio_value) }}$</span>
+        </div>
+        <div class="stat-card highlight">
+            <span class="stat-label">PATRIMOINE TOTAL</span>
+            <span class="stat-value total-value">{{ "%.2f"|format(total_value) }}$</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">STATUT MARCHÉ</span>
+            <span class="stat-value market-status"><span class="pulse-dot"></span> LIVE</span>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <!-- ─── TABLEAU DES PRIX ───────────────────────────────── -->
+        <section class="panel panel-market">
+            <div class="panel-header">
+                <h2 class="panel-title">◈ MARCHÉ EN TEMPS RÉEL</h2>
+                <span class="panel-badge" id="last-update">—</span>
+            </div>
+            <table class="market-table" id="market-table">
+                <thead>
+                    <tr>
+                        <th>TICKER</th>
+                        <th>NOM</th>
+                        <th>PRIX</th>
+                        <th>VARIATION</th>
+                        <th>ACHETER</th>
+                        <th>VENDRE</th>
+                    </tr>
+                </thead>
+                <tbody id="stocks-tbody">
+                {% for stock in stocks %}
+                    {% set pct = ((stock.current_price - stock.old_price) / stock.old_price * 100) if stock.old_price > 0 else 0 %}
+                    <tr id="row-{{ stock.id }}" class="stock-row">
+                        <td class="ticker-cell">{{ stock.ticker }}</td>
+                        <td>{{ stock.name }}</td>
+                        <td class="price-cell" id="price-{{ stock.id }}">{{ "%.2f"|format(stock.current_price) }}$</td>
+                        <td class="change-cell {{ 'up' if pct >= 0 else 'down' }}" id="change-{{ stock.id }}">
+                            {{ '+' if pct >= 0 else '' }}{{ "%.2f"|format(pct) }}%
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('buy') }}" class="trade-form">
+                                <input type="hidden" name="stock_id" value="{{ stock.id }}">
+                                <input type="number" name="quantity" class="qty-input" min="1" value="1" required>
+                                <button type="submit" class="btn-buy">BUY</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('sell') }}" class="trade-form">
+                                <input type="hidden" name="stock_id" value="{{ stock.id }}">
+                                <input type="number" name="quantity" class="qty-input" min="1" value="1" required>
+                                <button type="submit" class="btn-sell">SELL</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <!-- ─── SIDEBAR DROITE ────────────────────────────────── -->
+        <aside class="sidebar">
+
+            <!-- PORTEFEUILLE -->
+            <section class="panel panel-portfolio">
+                <div class="panel-header">
+                    <h2 class="panel-title">▣ MON PORTEFEUILLE</h2>
+                </div>
+                {% if portfolio %}
+                <table class="portfolio-table">
+                    <thead>
+                        <tr><th>TICKER</th><th>QTÉ</th><th>VALEUR</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for holding in portfolio %}
+                        <tr>
+                            <td class="ticker-cell">{{ holding.ticker }}</td>
+                            <td>{{ holding.quantity }}</td>
+                            <td>{{ "%.0f"|format(holding.position_value) }}$</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="empty-state">Aucune position ouverte.<br>Achète ta première action !</p>
+                {% endif %}
+            </section>
+
+            <!-- NEWS FEED -->
+            <section class="panel panel-news">
+                <div class="panel-header">
+                    <h2 class="panel-title">⚡ FLUX D'ÉVÉNEMENTS</h2>
+                </div>
+                <ul class="news-feed" id="news-feed">
+                {% for log in logs %}
+                    <li class="news-item">
+                        <span class="news-msg">{{ log.message }}</span>
+                        <span class="news-time">{{ log.created_at.strftime('%H:%M:%S') }}</span>
+                    </li>
+                {% else %}
+                    <li class="news-item empty-state">Aucun événement pour l'instant.</li>
+                {% endfor %}
+                </ul>
+            </section>
+
+        </aside>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Polling toutes les 5 secondes pour les prix live
+    setInterval(async () => {
+        try {
+            const res = await fetch("/api/prices");
+            const data = await res.json();
+            const now = new Date().toLocaleTimeString("fr-FR");
+
+            data.stocks.forEach(stock => {
+                const priceEl  = document.getElementById(`price-${stock.id}`);
+                const changeEl = document.getElementById(`change-${stock.id}`);
+                const row      = document.getElementById(`row-${stock.id}`);
+                if (!priceEl) return;
+
+                const oldPrice = parseFloat(priceEl.textContent);
+                priceEl.textContent = stock.price.toFixed(2) + "$";
+
+                // Flash vert/rouge au changement
+                if (stock.price > oldPrice) {
+                    row.classList.add("flash-green"); setTimeout(() => row.classList.remove("flash-green"), 600);
+                } else if (stock.price < oldPrice) {
+                    row.classList.add("flash-red"); setTimeout(() => row.classList.remove("flash-red"), 600);
+                }
+
+                changeEl.textContent = (stock.change_pct >= 0 ? "+" : "") + stock.change_pct.toFixed(2) + "%";
+                changeEl.className = "change-cell " + (stock.change_pct >= 0 ? "up" : "down");
+            });
+
+            // Màj news feed
+            const newsFeed = document.getElementById("news-feed");
+            if (data.logs.length) {
+                newsFeed.innerHTML = data.logs.map(l =>
+                    `<li class="news-item"><span class="news-msg">${l.message}</span><span class="news-time">${l.time.slice(11,19)}</span></li>`
+                ).join("");
+            }
+
+            document.getElementById("last-update").textContent = "Mis à jour " + now;
+        } catch(e) { console.error("API error:", e); }
+    }, 5000);
+</script>
+{% endblock %}
