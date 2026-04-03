@@ -1,57 +1,67 @@
--- ═══════════════════════════════════════════════════════
---  SHADOW TRADER — init_db.sql
---  Copier-coller dans phpMyAdmin ou MySQL Workbench
--- ═══════════════════════════════════════════════════════
+-- Suppression pour reset propre
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS corps;
+DROP TABLE IF EXISTS stocks;
+DROP TABLE IF EXISTS portfolio;
+DROP TABLE IF EXISTS loans;
+DROP TABLE IF EXISTS messages;
 
-CREATE DATABASE IF NOT EXISTS shadow_trader CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE shadow_trader;
-
--- ─── TABLES ──────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS users (
-    id            INT AUTO_INCREMENT PRIMARY KEY,
-    username      VARCHAR(50) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    cash          DECIMAL(15, 2) DEFAULT 10000.00,
-    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- 1. Table des Entreprises
+CREATE TABLE corps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    ceo_id INTEGER,
+    treasury REAL DEFAULT 0.0,
+    invite_code TEXT, -- Code pour rejoindre en privé
+    is_ipo BOOLEAN DEFAULT 0, -- Cotation en bourse dès 1M
+    tax_rate REAL DEFAULT 0.15 -- La part du patron (15%)
 );
 
-CREATE TABLE IF NOT EXISTS stocks (
-    id            INT AUTO_INCREMENT PRIMARY KEY,
-    name          VARCHAR(50) NOT NULL,
-    ticker        VARCHAR(5) UNIQUE NOT NULL,
-    current_price DECIMAL(15, 2) NOT NULL,
-    old_price     DECIMAL(15, 2) NOT NULL,
-    volatility    FLOAT DEFAULT 0.02,
-    sector        VARCHAR(30) DEFAULT 'Tech'
+-- 2. Table des Utilisateurs
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    cash REAL DEFAULT 10000.0,
+    stars REAL DEFAULT 5.0, -- Note style Vinted
+    is_banned BOOLEAN DEFAULT 0,
+    ban_reason TEXT,
+    corp_id INTEGER,
+    is_admin BOOLEAN DEFAULT 0,
+    FOREIGN KEY (corp_id) REFERENCES corps(id)
 );
 
-CREATE TABLE IF NOT EXISTS portfolio (
-    user_id   INT,
-    stock_id  INT,
-    quantity  INT DEFAULT 0,
-    PRIMARY KEY (user_id, stock_id),
-    FOREIGN KEY (user_id)  REFERENCES users(id)  ON DELETE CASCADE,
-    FOREIGN KEY (stock_id) REFERENCES stocks(id) ON DELETE CASCADE
+-- 3. Table des Actions
+CREATE TABLE stocks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL, -- Auto, Crypto, Tech, Banque, Energie
+    price REAL NOT NULL,
+    old_price REAL NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS logs (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    message    TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- 4. Table des Prêts (Loans)
+CREATE TABLE loans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lender_id INTEGER,
+    borrower_id INTEGER,
+    amount REAL,
+    interest_rate REAL, -- 10% à 50%
+    due_date DATETIME,
+    status TEXT DEFAULT 'ACTIVE', -- 'ACTIVE', 'PAID', 'LATE'
+    FOREIGN KEY (lender_id) REFERENCES users(id),
+    FOREIGN KEY (borrower_id) REFERENCES users(id)
 );
 
--- ─── DONNÉES DE DÉPART (5 ACTIONS) ───────────────────────
-
-INSERT INTO stocks (name, ticker, current_price, old_price, volatility, sector) VALUES
-('TeslaX Corp',      'TSLX',  250.00,  250.00, 0.035, 'AutoTech'),
-('CyberSoda Inc',    'CYBR',   80.00,   80.00, 0.025, 'Boissons'),
-('MoonMining Ltd',   'MOON',  420.00,  420.00, 0.050, 'Ressources'),
-('NeuralDream AI',   'NDAI',  155.00,  155.00, 0.030, 'Intelligence Artificielle'),
-('OceanPower Corp',  'OCNP',   45.00,   45.00, 0.020, 'Énergie');
-
--- ─── LOG D'INITIALISATION ────────────────────────────────
-
-INSERT INTO logs (message) VALUES
-('🚀 Shadow Trader initialisé — 5 actions disponibles'),
-('📊 Marché ouvert. Bonne chance, trader.');
+-- 5. Table des Messages (Mailbox)
+CREATE TABLE messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    receiver_id INTEGER,
+    sender_name TEXT,
+    subject TEXT,
+    content TEXT,
+    type TEXT, -- 'INVOICE', 'CONTRACT', 'SECURITY', 'NEWS'
+    is_read BOOLEAN DEFAULT 0,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (receiver_id) REFERENCES users(id)
+);
