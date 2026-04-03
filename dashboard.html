@@ -11,6 +11,13 @@
     <header class="main-header">
         <div class="user-info">
             <span class="label">TRADER:</span> <span class="value">{{ user.username }}</span>
+            
+            {% if user.corp_name %}
+                <span class="label">CORP:</span> <span class="value neon-blue">[{{ user.corp_name }}]</span>
+            {% else %}
+                <span class="label">CORP:</span> <span class="value">INDÉPENDANT</span>
+            {% endif %}
+            
             <span class="label">CASH:</span> <span class="value neon-green">{{ "{:,.2f}".format(user.cash) }} €</span>
             <span class="label">SCORE:</span> <span class="value">⭐ {{ user.stars }}/5</span>
         </div>
