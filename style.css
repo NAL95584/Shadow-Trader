@@ -89,3 +89,72 @@ input {
 .alert-success { background: rgba(0, 255, 65, 0.1); color: var(--neon-green); border-color: var(--neon-green); }
 
 .terminal-footer { background: #0d1117; color: var(--neon-green); font-size: 10px; padding: 5px; border-top: 1px solid var(--border-color); }
+/* DASHBOARD LAYOUT */
+.dashboard-body {
+    background-color: var(--bg-color);
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.main-header {
+    background: #161b22;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.label { color: #8b949e; font-size: 12px; margin-left: 15px; }
+.value { color: white; font-weight: bold; }
+.neon-green { color: var(--neon-green); text-shadow: 0 0 5px var(--neon-green); }
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+/* STOCKS SECTION */
+.market-section { padding: 20px; overflow-y: auto; }
+.stocks-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
+.stock-card {
+    background: #161b22;
+    border: 1px solid var(--border-color);
+    padding: 15px;
+    border-radius: 8px;
+    transition: 0.2s;
+}
+.stock-card:hover { border-color: var(--neon-green); transform: translateY(-2px); }
+
+/* CHAT SECTION */
+.social-section {
+    background: #0d1117;
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+.chat-container { flex-grow: 1; padding: 15px; overflow-y: auto; font-size: 13px; }
+.chat-msg { margin-bottom: 10px; color: #c9d1d9; }
+.chat-msg.system { color: var(--neon-green); font-style: italic; }
+
+/* BOTTOM NAV */
+.bottom-nav {
+    background: #161b22;
+    padding: 10px;
+    display: flex;
+    justify-content: space-around;
+    border-top: 1px solid var(--border-color);
+}
+.btn-nav {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: white;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono';
+}
+.btn-nav:hover { border-color: var(--neon-green); color: var(--neon-green); }
