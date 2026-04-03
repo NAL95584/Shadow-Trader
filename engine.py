@@ -1,42 +1,19 @@
 import sqlite3
 import random
+import os
 
 def update_market_prices():
-    conn = sqlite3.connect('shadow_trader.db')
-    conn.row_factory = sqlite3.Row
+    db_path = os.path.join(os.path.dirname(__file__), 'shadow_trader.db')
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-
-    # 1. Récupérer toutes les actions
-    stocks = cursor.execute('SELECT * FROM stocks').fetchall()
-
-    for stock in stocks:
-        old_price = stock['price']
-        
-        # Simulation d'une variation naturelle (Bruit de marché)
-        # On ajoute entre -2% et +2% au hasard
-        change_percent = random.uniform(-0.02, 0.02)
-        
-        # --- LOGIQUE D'OFFRE ET DEMANDE (AVANCÉ) ---
-        # On regarde combien de transactions d'achat ont eu lieu récemment pour cette action
-        # (Plus il y a d'achats, plus le multiplicateur monte)
-        # Pour l'instant, on simule une petite dérive positive
-        
-        new_price = old_price * (1 + change_percent)
-        
-        # Sécurité : Le prix ne peut pas descendre en dessous de 0.01€
-        if new_price < 0.01:
-            new_price = 0.01
-
-        # Mettre à jour la base de données
-        cursor.execute('''
-            UPDATE stocks 
-            SET old_price = ?, price = ? 
-            WHERE id = ?
-        ''', (old_price, round(new_price, 2), stock['id']))
-
+    
+    stocks = cursor.execute('SELECT id, price FROM stocks').fetchall()
+    for stock_id, current_price in stocks:
+        # Variation de -2% à +2.5%
+        change = random.uniform(0.98, 1.025)
+        new_price = round(current_price * change, 2)
+        cursor.execute('UPDATE stocks SET old_price = ?, price = ? WHERE id = ?', 
+                       (current_price, new_price, stock_id))
+    
     conn.commit()
     conn.close()
-    print("Marché mis à jour avec succès.")
-
-if __name__ == "__main__":
-    update_market_prices()
