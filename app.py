@@ -96,9 +96,15 @@ def dashboard():
         return redirect(url_for('home'))
     
     conn = get_db_connection()
-    user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    # On utilise une jointure LEFT JOIN pour récupérer le nom de la corp en même temps que l'user
+    query = '''
+        SELECT users.*, corps.name AS corp_name 
+        FROM users 
+        LEFT JOIN corps ON users.corp_id = corps.id 
+        WHERE users.id = ?
+    '''
+    user = conn.execute(query, (session['user_id'],)).fetchone()
     stocks = conn.execute('SELECT * FROM stocks').fetchall()
-    # On récupère les messages non lus pour la pastille de notification
     unread_msg = conn.execute('SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND is_read = 0', 
                               (session['user_id'],)).fetchone()[0]
     conn.close()
