@@ -92,8 +92,12 @@ def dashboard():
     conn = get_db_connection()
     user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
     stocks = conn.execute('SELECT * FROM stocks').fetchall()
+    
+    # AJOUTE CETTE LIGNE ICI POUR FIXER L'ERREUR :
+    unread_msg = 0 
+    
     conn.close()
-    return render_template('dashboard.html', user=user, stocks=stocks)
+    return render_template('dashboard.html', user=user, stocks=stocks, unread_msg=unread_msg)
 
 @app.route('/scoreboard')
 def scoreboard():
