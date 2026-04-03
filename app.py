@@ -216,3 +216,56 @@ def join_corp():
     
     conn.close()
     return redirect(url_for('corporation'))
+@app.route('/loans')
+def loans():
+    if 'user_id' not in session: return redirect(url_for('home'))
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    
+    # Prêts en attente de financement
+    pending_loans = conn.execute('''
+        SELECT loans.*, users.username, users.stars 
+        FROM loans JOIN users ON loans.borrower_id = users.id 
+        WHERE status = 'PENDING' AND borrower_id != ?''', (session['user_id'],)).fetchall()
+    
+    # Mes contrats (Emprunteur ou Prêteur)
+    my_loans = conn.execute('''
+        SELECT l.*, u.username as partner_name 
+        FROM loans l 
+        JOIN users u ON (l.lender_id = u.id OR l.borrower_id = u.id)
+        WHERE (l.lender_id = ? OR l.borrower_id = ?) AND u.id != ?''', 
+        (session['user_id'], session['user_id'], session['user_id'])).fetchall()
+    
+    conn.close()
+    return render_template('loans.html', user=user, pending_loans=pending_loans, my_loans=my_loans)
+
+@app.route('/request_loan', methods=['POST'])
+def request_loan():
+    amount = float(request.form['amount'])
+    interest = float(request.form['interest'])
+    conn = get_db_connection()
+    conn.execute('INSERT INTO loans (borrower_id, amount, interest_rate, status) VALUES (?, ?, ?, ?)',
+                 (session['user_id'], amount, interest, 'PENDING'))
+    conn.commit()
+    conn.close()
+    flash("Demande de prêt publiée sur le réseau.", "success")
+    return redirect(url_for('loans'))
+
+@app.route('/fund_loan', methods=['POST'])
+def fund_loan():
+    loan_id = request.form['loan_id']
+    conn = get_db_connection()
+    loan = conn.execute('SELECT * FROM loans WHERE id = ?', (loan_id,)).fetchone()
+    lender = conn.execute('SELECT cash FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    
+    if lender['cash'] >= loan['amount']:
+        # Transaction atomique
+        conn.execute('UPDATE users SET cash = cash - ? WHERE id = ?', (loan['amount'], session['user_id']))
+        conn.execute('UPDATE users SET cash = cash + ? WHERE id = ?', (loan['amount'], loan['borrower_id']))
+        conn.execute('UPDATE loans SET lender_id = ?, status = "ACTIVE" WHERE id = ?', (session['user_id'], loan_id))
+        conn.commit()
+        flash("Prêt accordé ! Vous recevrez les intérêts au remboursement.", "success")
+    else:
+        flash("Solde insuffisant pour prêter.", "danger")
+    conn.close()
+    return redirect(url_for('loans'))
