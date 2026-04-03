@@ -5,15 +5,18 @@ from engine import update_market_prices
 # ... (reste de ton code app.py) ...
 
 # Fonction qui tourne en boucle toutes les 60 secondes
+from security_audit import run_security_check
+
 def market_loop():
     while True:
         with app.app_context():
             try:
-                update_market_prices()
-                print("Tick Marché : Prix actualisés.")
+                update_market_prices() # Faire bouger les prix
+                run_security_check()    # Vérifier la sécurité
+                print("Tick Système : Marché et Sécurité OK.")
             except Exception as e:
-                print(f"Erreur moteur : {e}")
-        time.sleep(60) # Attendre 1 minute
+                print(f"Erreur système : {e}")
+        time.sleep(60) # Vérification toutes les minutes
 
 # Lancer le thread du marché au démarrage
 threading.Thread(target=market_loop, daemon=True).start()
