@@ -1,3 +1,25 @@
+import threading
+import time
+from engine import update_market_prices
+
+# ... (reste de ton code app.py) ...
+
+# Fonction qui tourne en boucle toutes les 60 secondes
+def market_loop():
+    while True:
+        with app.app_context():
+            try:
+                update_market_prices()
+                print("Tick Marché : Prix actualisés.")
+            except Exception as e:
+                print(f"Erreur moteur : {e}")
+        time.sleep(60) # Attendre 1 minute
+
+# Lancer le thread du marché au démarrage
+threading.Thread(target=market_loop, daemon=True).start()
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_bcrypt import Bcrypt
 import sqlite3
