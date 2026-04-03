@@ -2,4 +2,4 @@ Flask
 Flask-Bcrypt
 Flask-Login
 openai
-sqlite3
+
