@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Shadow Trader - Marché du Crédit</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="loans-body">
+
+    <header class="main-header">
+        <a href="/dashboard" class="btn-back">← RETOUR</a>
+        <div class="user-info">
+            <span class="label">VOTRE SCORE:</span> <span class="value">⭐ {{ user.stars }}/5</span>
+        </div>
+    </header>
+
+    <div class="loans-container">
+        <div class="loans-grid">
+            <div class="loan-card create-loan">
+                <h3>SOLLICITER UN PRÊT</h3>
+                <form action="/request_loan" method="POST">
+                    <label>MONTANT (MAX 5000€)</label>
+                    <input type="number" name="amount" max="5000" required>
+                    <label>INTÉRÊTS PROPOSÉS (%)</label>
+                    <input type="number" name="interest" min="10" max="50" value="15">
+                    <button type="submit" class="btn-login">PUBLIER LA DEMANDE</button>
+                </form>
+            </div>
+
+            <div class="loan-list">
+                <h3>OFFRES DE CRÉDIT DISPONIBLES</h3>
+                {% for loan in pending_loans %}
+                <div class="loan-item">
+                    <div class="loan-user">
+                        <strong>{{ loan.username }}</strong>
+                        <span class="stars">⭐ {{ loan.stars }}</span>
+                    </div>
+                    <div class="loan-details">
+                        <span>{{ loan.amount }} €</span>
+                        <span class="neon-green">+{{ loan.interest_rate }}%</span>
+                    </div>
+                    <form action="/fund_loan" method="POST">
+                        <input type="hidden" name="loan_id" value="{{ loan.id }}">
+                        <button type="submit" class="btn-buy">PRÊTER</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="my-loans">
+            <h3>MES CONTRATS EN COURS</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>TYPE</th>
+                        <th>PARTENAIRE</th>
+                        <th>TOTAL À RÉGLER</th>
+                        <th>STATUT</th>
+                        <th>ACTION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in my_loans %}
+                    <tr>
+                        <td>{% if l.borrower_id == user.id %}EMPRUNT{% else %}PRÊT{% endif %}</td>
+                        <td>{{ l.partner_name }}</td>
+                        <td>{{ l.amount * (1 + l.interest_rate/100) }} €</td>
+                        <td><span class="badge">{{ l.status }}</span></td>
+                        <td>
+                            {% if l.borrower_id == user.id and l.status == 'ACTIVE' %}
+                            <form action="/repay_loan" method="POST">
+                                <input type="hidden" name="loan_id" value="{{ l.id }}">
+                                <button type="submit" class="btn-nav">REMBOURSER</button>
+                            </form>
+                            {% elif l.lender_id == user.id and l.status == 'PAID' %}
+                            <form action="/rate_user" method="POST">
+                                <input type="hidden" name="borrower_id" value="{{ l.borrower_id }}">
+                                <select name="rating">
+                                    <option value="5">⭐⭐⭐⭐⭐</option>
+                                    <option value="1">⭐</option>
+                                </select>
+                                <button type="submit">NOTER</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
