@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Shadow Trader - Corporation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="corp-body">
+
+    <header class="main-header">
+        <a href="/dashboard" class="btn-back">← RETOUR TERMINAL</a>
+        <div class="user-info">
+            <span class="label">ENTREPRISE:</span>
+            <span class="value neon-blue">{% if user.corp_id and corp %}{{ corp.name }}{% else %}AUCUNE{% endif %}</span>
+        </div>
+        <div class="nav-links">
+            <a href="/messages" class="nav-item">✉️ MESSAGES {% if unread_msg > 0 %}<span class="badge">{{ unread_msg }}</span>{% endif %}</a>
+        </div>
+    </header>
+
+    <div class="corp-container">
+
+        {% if not user.corp_id %}
+        <!-- ====== PAS DE CORP : CRÉER / REJOINDRE ====== -->
+        <div class="corp-grid">
+            <div class="corp-card">
+                <h3>FONDEZ VOTRE EMPIRE</h3>
+                <p>Coût de création : <strong class="neon-green">100 000.00 €</strong><br>
+                Vous deviendrez le PDG (CEO) et pourrez recruter des associés.</p>
+                <form action="/create_corp" method="POST">
+                    <label>NOM DE L'ENTREPRISE</label>
+                    <input type="text" name="corp_name" placeholder="Ex: Nexus Capital" required maxlength="40">
+                    <label style="margin-top:10px;">CODE D'INVITATION SECRET</label>
+                    <input type="text" name="invite_code" placeholder="Code que vous choisirez" required maxlength="20">
+                    <button type="submit" class="btn-login" style="margin-top:16px;">CONSTITUER L'ENTREPRISE</button>
+                </form>
+            </div>
+
+            <div class="corp-card">
+                <h3>REJOINDRE UNE STRUCTURE</h3>
+                <p>Entrez le code secret fourni par le CEO de la corporation que vous souhaitez rejoindre.</p>
+                <form action="/join_corp" method="POST">
+                    <label>CODE D'ACCÈS</label>
+                    <input type="text" name="invite_code" placeholder="Code fourni par votre CEO" required>
+                    <button type="submit" class="btn-login" style="margin-top:16px;">REJOINDRE</button>
+                </form>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- ====== DASHBOARD CORPORATION ====== -->
+        <div class="corp-dashboard">
+            <div class="corp-header">
+                <h1>{{ corp.name }}</h1>
+                <div class="corp-stats">
+                    <div class="stat">TRÉSORERIE: <span class="neon-green">{{ "{:,.2f}".format(corp.treasury) }} €</span></div>
+                    <div class="stat">MEMBRES: <span class="neon-blue">{{ members|length }}</span></div>
+                    <div class="stat">CODE D'INVITATION: <span class="neon-yellow">{{ corp.invite_code }}</span></div>
+                    <div class="stat">FONDÉE: <span class="muted">{{ corp.created_at[:10] if corp.created_at else '?' }}</span></div>
+                </div>
+            </div>
+
+            <div class="corp-card" style="margin-bottom: 20px;">
+                <h3>EFFECTIFS ACTIFS</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IDENTIFIANT</th>
+                            <th>GRADE</th>
+                            <th>STATUT</th>
+                            <th>{% if user.id == corp.ceo_id %}GESTION{% endif %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in members %}
+                        <tr>
+                            <td>
+                                {{ member.username }}
+                                {% if member.id == user.id %}<span class="muted" style="font-size:10px;"> (vous)</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if member.id == corp.ceo_id %}
+                                    <span class="neon-yellow">👑 CEO</span>
+                                {% else %}
+                                    <span class="muted">ASSOCIÉ</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if member.is_banned %}
+                                    <span class="neon-red">BANNI</span>
+                                {% else %}
+                                    <span class="neon-green">ACTIF</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.id == corp.ceo_id and member.id != corp.ceo_id %}
+                                <form action="/admin/ban/{{ member.id }}" method="POST" style="display:inline;">
+                                    <input type="hidden" name="reason" value="Exclu par le CEO">
+                                    <button type="submit" class="btn-kick">EXCLURE</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if user.id == corp.ceo_id %}
+            <div class="corp-card">
+                <h3>GESTION CEO</h3>
+                <p class="muted">En tant que PDG, vous gérez les membres et représentez la corporation sur les marchés.</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </div>
+</body>
+</html>

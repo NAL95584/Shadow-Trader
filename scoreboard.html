@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Shadow Trader - Classement</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="score-body">
+
+    <header class="main-header">
+        <a href="/dashboard" class="btn-back">← RETOUR TERMINAL</a>
+        <div class="user-info">
+            <span class="label">TRADER:</span>
+            <span class="value">{{ user.username }}</span>
+            <span class="label">CASH:</span>
+            <span class="value neon-green">{{ "{:,.2f}".format(user.cash) }} €</span>
+        </div>
+        <div class="nav-links">
+            <a href="/messages" class="nav-item">✉️ {% if unread_msg > 0 %}<span class="badge">{{ unread_msg }}</span>{% endif %}</a>
+        </div>
+    </header>
+
+    <div class="score-container" style="margin-top: 30px;">
+        <p class="score-title">🏆 TOP 10 — CLASSEMENT MONDIAL</p>
+
+        {% for trader in top_traders %}
+        <div class="rank-row {% if trader.username == user.username %}is-me{% endif %}">
+            <div class="rank-num {% if loop.index <= 3 %}top{% endif %}">
+                {% if loop.index == 1 %}🥇
+                {% elif loop.index == 2 %}🥈
+                {% elif loop.index == 3 %}🥉
+                {% else %}#{{ loop.index }}
+                {% endif %}
+            </div>
+            <div class="rank-name">
+                {{ trader.username }}
+                {% if trader.username == user.username %}<span class="muted" style="font-size:10px;"> (vous)</span>{% endif %}
+            </div>
+            <div class="rank-stars">⭐ {{ trader.stars }}/5</div>
+            <div class="rank-cash">{{ "{:,.0f}".format(trader.cash) }} €</div>
+        </div>
+        {% else %}
+        <p class="muted" style="text-align:center;margin-top:40px;">Aucun trader enregistré.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>
