@@ -158,3 +158,61 @@ def buy():
     
     conn.close()
     return {"status": "error", "message": "Fonds insuffisants !"}
+    @app.route('/corporation')
+def corporation():
+    if 'user_id' not in session: return redirect(url_for('home'))
+    conn = get_db_connection()
+    
+    # Infos utilisateur et sa corp
+    user = conn.execute('SELECT users.*, corps.name AS corp_name FROM users LEFT JOIN corps ON users.corp_id = corps.id WHERE users.id = ?', (session['user_id'],)).fetchone()
+    
+    corp = None
+    members = []
+    if user['corp_id']:
+        corp = conn.execute('SELECT * FROM corps WHERE id = ?', (user['corp_id'],)).fetchone()
+        members = conn.execute('SELECT id, username FROM users WHERE corp_id = ?', (user['corp_id'],)).fetchall()
+    
+    conn.close()
+    return render_template('corporation.html', user=user, corp=corp, members=members)
+
+@app.route('/create_corp', methods=['POST'])
+def create_corp():
+    name = request.form['corp_name']
+    code = request.form['invite_code']
+    user_id = session['user_id']
+    
+    conn = get_db_connection()
+    user = conn.execute('SELECT cash FROM users WHERE id = ?', (user_id,)).fetchone()
+    
+    if user['cash'] >= 100000:
+        # Création de la corp
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO corps (name, ceo_id, invite_code, treasury) VALUES (?, ?, ?, ?)', 
+                       (name, user_id, code, 0))
+        corp_id = cursor.lastrowid
+        
+        # Mise à jour de l'user (Paye 100k + devient membre)
+        conn.execute('UPDATE users SET cash = cash - 100000, corp_id = ? WHERE id = ?', (corp_id, user_id))
+        conn.commit()
+        flash(f"Corporation {name} créée avec succès !", "success")
+    else:
+        flash("Fonds insuffisants (100 000 € requis).", "danger")
+    
+    conn.close()
+    return redirect(url_for('corporation'))
+
+@app.route('/join_corp', methods=['POST'])
+def join_corp():
+    code = request.form['invite_code']
+    conn = get_db_connection()
+    corp = conn.execute('SELECT id FROM corps WHERE invite_code = ?', (code,)).fetchone()
+    
+    if corp:
+        conn.execute('UPDATE users SET corp_id = ? WHERE id = ?', (corp['id'], session['user_id']))
+        conn.commit()
+        flash("Bienvenue dans votre nouvelle entreprise.", "success")
+    else:
+        flash("Code d'invitation invalide.", "danger")
+    
+    conn.close()
+    return redirect(url_for('corporation'))
