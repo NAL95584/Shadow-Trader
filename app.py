@@ -161,7 +161,7 @@ def buy():
     
     conn.close()
     return {"status": "error", "message": "Fonds insuffisants !"}
-    @app.route('/corporation')
+@app.route('/corporation')
 def corporation():
     if 'user_id' not in session: return redirect(url_for('home'))
     conn = get_db_connection()
