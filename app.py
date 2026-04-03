@@ -84,5 +84,49 @@ def dashboard():
     return render_template('dashboard.html', user=user, stocks=stocks, unread_msg=unread_msg)
 
 if __name__ == '__main__':
-    # On écoute sur 0.0.0.0 pour que tes camarades puissent se connecter via ton IP
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    from datetime import datetime
+
+# Liste temporaire pour le chat (en attendant la BDD chat)
+chat_history = []
+
+@app.route('/get_user_stats')
+def get_user_stats():
+    if 'user_id' not in session: return {"error": "unauthorized"}, 401
+    conn = get_db_connection()
+    user = conn.execute('SELECT cash FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    conn.close()
+    return {"cash": user['cash']}
+
+@app.route('/send_message', methods=['POST'])
+def send_msg():
+    data = request.json
+    msg_obj = {
+        "user": session.get('username', 'Anonyme'),
+        "text": data['message'],
+        "time": datetime.now().strftime("%H:%M")
+    }
+    chat_history.append(msg_obj)
+    if len(chat_history) > 50: chat_history.pop(0) # Garder les 50 derniers
+    return {"status": "success"}
+
+@app.route('/get_messages')
+def get_msgs():
+    return {"messages": chat_history}
+
+@app.route('/buy', methods=['POST'])
+def buy():
+    # Logique d'achat simplifiée pour le test
+    data = request.json
+    conn = get_db_connection()
+    user = conn.execute('SELECT cash FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    stock = conn.execute('SELECT price FROM stocks WHERE id = ?', (data['stock_id'],)).fetchone()
+    
+    if user['cash'] >= stock['price']:
+        new_cash = user['cash'] - stock['price']
+        conn.execute('UPDATE users SET cash = ? WHERE id = ?', (new_cash, session['user_id']))
+        conn.commit()
+        conn.close()
+        return {"status": "success"}
+    
+    conn.close()
+    return {"status": "error", "message": "Fonds insuffisants !"}
