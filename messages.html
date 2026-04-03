@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Shadow Trader - Messagerie Sécurisée</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="messages-body">
+    <header class="main-header">
+        <a href="/dashboard" class="btn-back">← RETOUR</a>
+        <h1>BOÎTE DE RÉCEPTION</h1>
+    </header>
+
+    <div class="messages-container">
+        {% for msg in messages %}
+        <div class="message-card {{ msg.type }}">
+            <div class="msg-header">
+                <span class="sender">{{ msg.sender_name }}</span>
+                <span class="date">{{ msg.timestamp }}</span>
+            </div>
+            <div class="msg-subject">{{ msg.subject }}</div>
+            <div class="msg-content">{{ msg.content }}</div>
+            
+            {% if user.is_admin and msg.type == 'SECURITY' %}
+                <div class="admin-actions">
+                    <button class="btn-kick">BANNIR L'UTILISATEUR</button>
+                    <button class="btn-buy">IGNORER</button>
+                </div>
+            {% endif %}
+        </div>
+        {% else %}
+            <p style="text-align:center; color:#8b949e;">Aucun message crypté.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>
