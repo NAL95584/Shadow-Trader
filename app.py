@@ -1,7 +1,18 @@
 import threading
 import time
 from engine import update_market_prices
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask_bcrypt import Bcrypt
+import sqlite3
+import os
 
+# --- CETTE LIGNE EST INDISPENSABLE ET DOIT ÊTRE ICI ---
+app = Flask(__name__) 
+app.secret_key = 'shadow_trader_secret_key_pro'
+bcrypt = Bcrypt(app)
+# -----------------------------------------------------
+
+# Ensuite vient le reste de ton code (get_db_connection, etc.)
 # ... (reste de ton code app.py) ...
 
 # Fonction qui tourne en boucle toutes les 60 secondes
