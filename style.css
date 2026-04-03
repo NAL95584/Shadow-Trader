@@ -163,3 +163,17 @@ input {
     text-shadow: 0 0 5px #00d2ff;
     font-weight: bold;
 }
+.corp-container { padding: 40px; max-width: 1000px; margin: 0 auto; }
+.corp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+.corp-card { background: #161b22; padding: 30px; border: 1px solid #30363d; border-radius: 8px; }
+.corp-card h3 { color: var(--neon-green); margin-top: 0; }
+
+.corp-stats { display: flex; gap: 20px; background: #0d1117; padding: 15px; border-radius: 4px; margin-bottom: 30px; }
+.stat { font-size: 0.9rem; color: #8b949e; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th { text-align: left; color: var(--neon-green); border-bottom: 1px solid #30363d; padding: 10px; }
+td { padding: 15px 10px; border-bottom: 1px solid #161b22; }
+
+.btn-kick { background: none; border: 1px solid var(--neon-red); color: var(--neon-red); padding: 5px 10px; cursor: pointer; border-radius: 4px; }
+.btn-kick:hover { background: var(--neon-red); color: white; }
