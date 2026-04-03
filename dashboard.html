@@ -1,167 +1,80 @@
-{% extends "base.html" %}
-{% block title %}Dashboard — Shadow Trader{% endblock %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Shadow Trader - Terminal de Trading</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script> </head>
+<body class="dashboard-body">
 
-{% block content %}
-<div class="dashboard">
-
-    <!-- ─── BARRE DE STATS ─────────────────────────────────────── -->
-    <div class="stats-bar">
-        <div class="stat-card">
-            <span class="stat-label">CASH DISPONIBLE</span>
-            <span class="stat-value cash-value" id="cash-display">{{ "%.2f"|format(user.cash) }}$</span>
+    <header class="main-header">
+        <div class="user-info">
+            <span class="label">TRADER:</span> <span class="value">{{ user.username }}</span>
+            <span class="label">CASH:</span> <span class="value neon-green">{{ "{:,.2f}".format(user.cash) }} €</span>
+            <span class="label">SCORE:</span> <span class="value">⭐ {{ user.stars }}/5</span>
         </div>
-        <div class="stat-card">
-            <span class="stat-label">VALEUR ACTIONS</span>
-            <span class="stat-value">{{ "%.2f"|format(portfolio_value) }}$</span>
+        <div class="nav-links">
+            <a href="/messages" class="nav-item">✉️ MESSAGES {% if unread_msg > 0 %}<span class="badge">{{ unread_msg }}</span>{% endif %}</a>
+            <a href="/logout" class="nav-item logout">DÉCONNEXION</a>
         </div>
-        <div class="stat-card highlight">
-            <span class="stat-label">PATRIMOINE TOTAL</span>
-            <span class="stat-value total-value">{{ "%.2f"|format(total_value) }}$</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-label">STATUT MARCHÉ</span>
-            <span class="stat-value market-status"><span class="pulse-dot"></span> LIVE</span>
-        </div>
-    </div>
+    </header>
 
     <div class="dashboard-grid">
-
-        <!-- ─── TABLEAU DES PRIX ───────────────────────────────── -->
-        <section class="panel panel-market">
-            <div class="panel-header">
-                <h2 class="panel-title">◈ MARCHÉ EN TEMPS RÉEL</h2>
-                <span class="panel-badge" id="last-update">—</span>
+        
+        <main class="market-section">
+            <div class="section-header">
+                <h2>📊 MARCHÉ DES ACTIFS</h2>
+                <div class="market-status">LIVE FEED 🟢</div>
             </div>
-            <table class="market-table" id="market-table">
-                <thead>
-                    <tr>
-                        <th>TICKER</th>
-                        <th>NOM</th>
-                        <th>PRIX</th>
-                        <th>VARIATION</th>
-                        <th>ACHETER</th>
-                        <th>VENDRE</th>
-                    </tr>
-                </thead>
-                <tbody id="stocks-tbody">
+
+            <div class="stocks-container">
                 {% for stock in stocks %}
-                    {% set pct = ((stock.current_price - stock.old_price) / stock.old_price * 100) if stock.old_price > 0 else 0 %}
-                    <tr id="row-{{ stock.id }}" class="stock-row">
-                        <td class="ticker-cell">{{ stock.ticker }}</td>
-                        <td>{{ stock.name }}</td>
-                        <td class="price-cell" id="price-{{ stock.id }}">{{ "%.2f"|format(stock.current_price) }}$</td>
-                        <td class="change-cell {{ 'up' if pct >= 0 else 'down' }}" id="change-{{ stock.id }}">
-                            {{ '+' if pct >= 0 else '' }}{{ "%.2f"|format(pct) }}%
-                        </td>
-                        <td>
-                            <form method="POST" action="{{ url_for('buy') }}" class="trade-form">
-                                <input type="hidden" name="stock_id" value="{{ stock.id }}">
-                                <input type="number" name="quantity" class="qty-input" min="1" value="1" required>
-                                <button type="submit" class="btn-buy">BUY</button>
-                            </form>
-                        </td>
-                        <td>
-                            <form method="POST" action="{{ url_for('sell') }}" class="trade-form">
-                                <input type="hidden" name="stock_id" value="{{ stock.id }}">
-                                <input type="number" name="quantity" class="qty-input" min="1" value="1" required>
-                                <button type="submit" class="btn-sell">SELL</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </section>
-
-        <!-- ─── SIDEBAR DROITE ────────────────────────────────── -->
-        <aside class="sidebar">
-
-            <!-- PORTEFEUILLE -->
-            <section class="panel panel-portfolio">
-                <div class="panel-header">
-                    <h2 class="panel-title">▣ MON PORTEFEUILLE</h2>
+                <div class="stock-card">
+                    <div class="stock-info">
+                        <span class="stock-cat">[{{ stock.category }}]</span>
+                        <span class="stock-name">{{ stock.name }}</span>
+                    </div>
+                    <div class="stock-price">
+                        <span class="current-price">{{ stock.price }} €</span>
+                        <span class="price-change {% if stock.price >= stock.old_price %}up{% else %}down{% endif %}">
+                            {{ "%.2f"|format(((stock.price - stock.old_price) / stock.old_price) * 100) }}%
+                        </span>
+                    </div>
+                    <div class="stock-actions">
+                        <button onclick="buyStock({{ stock.id }})" class="btn-buy">ACHETER</button>
+                        <button onclick="sellStock({{ stock.id }})" class="btn-sell">VENDRE</button>
+                    </div>
                 </div>
-                {% if portfolio %}
-                <table class="portfolio-table">
-                    <thead>
-                        <tr><th>TICKER</th><th>QTÉ</th><th>VALEUR</th></tr>
-                    </thead>
-                    <tbody>
-                    {% for holding in portfolio %}
-                        <tr>
-                            <td class="ticker-cell">{{ holding.ticker }}</td>
-                            <td>{{ holding.quantity }}</td>
-                            <td>{{ "%.0f"|format(holding.position_value) }}$</td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <p class="empty-state">Aucune position ouverte.<br>Achète ta première action !</p>
-                {% endif %}
-            </section>
-
-            <!-- NEWS FEED -->
-            <section class="panel panel-news">
-                <div class="panel-header">
-                    <h2 class="panel-title">⚡ FLUX D'ÉVÉNEMENTS</h2>
-                </div>
-                <ul class="news-feed" id="news-feed">
-                {% for log in logs %}
-                    <li class="news-item">
-                        <span class="news-msg">{{ log.message }}</span>
-                        <span class="news-time">{{ log.created_at.strftime('%H:%M:%S') }}</span>
-                    </li>
-                {% else %}
-                    <li class="news-item empty-state">Aucun événement pour l'instant.</li>
                 {% endfor %}
-                </ul>
-            </section>
+            </div>
+        </main>
 
+        <aside class="social-section">
+            <div class="tabs">
+                <button class="tab-btn active">CHAT_GLOBAL</button>
+                <button class="tab-btn">ENTREPRISE</button>
+            </div>
+            
+            <div class="chat-container" id="chat-box">
+                <div class="chat-msg system">Bienvenue sur le réseau, {{ user.username }}.</div>
+            </div>
+
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Envoyer un message au réseau...">
+                <button onclick="sendMessage()" class="btn-send"> > </button>
+            </div>
         </aside>
+
     </div>
-</div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-    // Polling toutes les 5 secondes pour les prix live
-    setInterval(async () => {
-        try {
-            const res = await fetch("/api/prices");
-            const data = await res.json();
-            const now = new Date().toLocaleTimeString("fr-FR");
+    <nav class="bottom-nav">
+        <button onclick="location.href='/loans'" class="btn-nav">🏦 PRÊTS P2P</button>
+        <button onclick="location.href='/corporation'" class="btn-nav">🏢 ENTREPRISE</button>
+        <button onclick="location.href='/assistants'" class="btn-nav">🤖 ASSISTANTS</button>
+        <button onclick="location.href='/portfolio'" class="btn-nav">💼 MON PORTEFEUILLE</button>
+    </nav>
 
-            data.stocks.forEach(stock => {
-                const priceEl  = document.getElementById(`price-${stock.id}`);
-                const changeEl = document.getElementById(`change-${stock.id}`);
-                const row      = document.getElementById(`row-${stock.id}`);
-                if (!priceEl) return;
-
-                const oldPrice = parseFloat(priceEl.textContent);
-                priceEl.textContent = stock.price.toFixed(2) + "$";
-
-                // Flash vert/rouge au changement
-                if (stock.price > oldPrice) {
-                    row.classList.add("flash-green"); setTimeout(() => row.classList.remove("flash-green"), 600);
-                } else if (stock.price < oldPrice) {
-                    row.classList.add("flash-red"); setTimeout(() => row.classList.remove("flash-red"), 600);
-                }
-
-                changeEl.textContent = (stock.change_pct >= 0 ? "+" : "") + stock.change_pct.toFixed(2) + "%";
-                changeEl.className = "change-cell " + (stock.change_pct >= 0 ? "up" : "down");
-            });
-
-            // Màj news feed
-            const newsFeed = document.getElementById("news-feed");
-            if (data.logs.length) {
-                newsFeed.innerHTML = data.logs.map(l =>
-                    `<li class="news-item"><span class="news-msg">${l.message}</span><span class="news-time">${l.time.slice(11,19)}</span></li>`
-                ).join("");
-            }
-
-            document.getElementById("last-update").textContent = "Mis à jour " + now;
-        } catch(e) { console.error("API error:", e); }
-    }, 5000);
-</script>
-{% endblock %}
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
