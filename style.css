@@ -158,3 +158,8 @@ input {
     font-family: 'JetBrains Mono';
 }
 .btn-nav:hover { border-color: var(--neon-green); color: var(--neon-green); }
+.neon-blue {
+    color: #00d2ff;
+    text-shadow: 0 0 5px #00d2ff;
+    font-weight: bold;
+}
